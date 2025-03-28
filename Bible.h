@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
+#include <map>
 using namespace std;
 
 // status codes to be returned when looking up a reference
@@ -53,5 +54,11 @@ class Bible {	// A class to represent a version of the bible
    Ref next(const Ref ref, LookupResult& status);
    // OPTIONAL: Return the reference before the given parameter ref
    Ref prev(const Ref ref, LookupResult& status);
+
+   void buildMap();
+
+   map<Ref, int> getBibRef() const {
+       return bibRef;
+   }
 };
 #endif //Bible_H

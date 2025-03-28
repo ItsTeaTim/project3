@@ -65,6 +65,7 @@ vector <string> books = { " ","Genesis", "Exodus", "Leviticus", "Numbers", "Deut
                           "1 Timothy", "2 Timothy", "Titus", "Philemon", "Hebrews", "James", "1 Peter", "2 Peter", "1 John", "2 John",
                           "3 John", "Jude", "Revelation"};
 
+
 // TO DO: implement comparison functions
 // REQUIRED: == comparison
 bool Ref::operator==(const Ref r) {
@@ -78,7 +79,26 @@ bool Ref::operator==(const Ref r) {
     return false;
 }
 
+
+
 // OPTIONAL: define < and > comparisons
+
+bool Ref::operator<(const Ref& r) const {
+    if (book != r.book) {
+        return book < r.book;
+    }
+    else if (chap != r.chap) {
+        return chap < r.chap;
+    }
+    else {
+        return verse < r.verse;
+    }
+}
+
+ostream& operator<<(std::ostream& os, const Ref& ref) {
+    os << "Book: " << ref.book << ", Chapter: " << ref.chap << ", Verse: " << ref.verse;
+    return os;
+}
 
 // TO DO: modify display function to show book name instead of book number
 void Ref::display() { 	// Display Reference

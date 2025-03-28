@@ -13,69 +13,82 @@ using namespace std;
 
 Bible::Bible() { // Default constructor
 	infile = "/home/class/csc3004/Bibles/web-complete";
+	buildMap();
 }
 
 // Constructor – pass bible filename
-Bible::Bible(const string s) { infile = s; }
+Bible::Bible(const string s) { 
+	infile = s; 
+	buildMap();
+}
 
 // REQUIRED: lookup finds a given verse in this Bible
 Verse Bible::lookup(Ref ref, LookupResult& status) { 
-    // TODO: scan the file to retrieve the line that holds ref ...
-    // update the status variable
-	status = OTHER; // placeholder until retrieval is attempted
-	// create and return the verse object
-	Verse aVerse;   // default verse, to be replaced by a Verse object
-	                // that is constructed from a line in the file.
-	
-	if (!instream.is_open()) {
-		instream.open(infile, ifstream::in);
-	}
-	string line;
 	Verse verse;
-	if (ref.getBook() > 66) {
-		status = NO_BOOK;
-		return(aVerse);
-	}
-	while (!instream.eof()) {
-		getline(instream, line);
-		verse = Verse(line);
-		//verse.display();
-		if (verse.getRef() == ref) { // If the verses are equal, return the verse
-			status = SUCCESS;
+	
+	string verseText = "";
+
+	if (!instream.is_open()) {
+		instream.open(infile, ios::binary);
+		if (!instream) {
 			return verse;
 		}
-		else if (ref.getBook() < verse.getRef().getBook()) {
-			status = NO_CHAPTER;
-			return(aVerse);
-		}
-		else if (ref.getChap() < verse.getRef().getChap() && ref.getBook() == verse.getRef().getBook()) {
-			status = NO_VERSE;
-			return(aVerse);
-		}
-		else {
-			status = OTHER;
-		}
-	} 
-	return(aVerse);
+	}
+
+	auto it = bibRef.find(ref);
+	instream.clear();  
+	instream.seekg(it->second, ios::beg); 
+
+	getline(instream, verseText);
+	if (verseText.empty()) {
+		status = NO_VERSE;
+		return verse;
+	}
+
+	Verse errHandle(verseText);
+	Ref handle = errHandle.getRef();
+
+	// Checks for validity
+	if (ref.getBook() > 66 || ref.getBook() <= 0) {
+		status = NO_BOOK;
+		return verse;
+	}
+	else if (handle.getBook() == ref.getBook() && ref.getChap() != handle.getChap()) {
+		status = NO_CHAPTER;
+		return verse;
+	}
+	else if (handle.getBook() == ref.getBook() && ref.getChap() == handle.getChap() && handle.getVerse() != ref.getVerse()) {
+		status = NO_VERSE;
+		return verse;
+	}
+
+	status = SUCCESS;
+	return Verse(verseText);
 }
 
 // REQUIRED: Return the next verse from the Bible file stream if the file is open.
 // If the file is not open, open the file and return the first verse.
 Verse Bible::nextVerse(LookupResult& status) {
-	Verse next;
-	string nextLine;
+	Verse nextVerse;
+
+	// If file is not open, open it
 	if (!instream.is_open()) {
 		instream.open(infile, ifstream::in);
-		next = Verse("1 1 1");
-		status = SUCCESS;
-		return next;
+		if (!instream) {  
+			status = NO_BOOK;
+			cout << error(status);
+			return nextVerse;
+		}
 	}
-	while (!instream.eof()) {
-		getline(instream, nextLine);
-		next = Verse(nextLine);
+
+	string nextLine;
+	if (getline(instream, nextLine)) {
 		status = SUCCESS;
-		return next;
+		return Verse(nextLine);  
 	}
+
+	status = OTHER;
+	return nextVerse;
 }
 
 // REQUIRED: Return an error message string to describe status
@@ -105,7 +118,22 @@ void Bible::display() {
 	
 // OPTIONAL access functions
 // OPTIONAL: Return the reference after the given ref
-Ref Bible::next(const Ref ref, LookupResult& status) {}
+Ref Bible::next(const Ref ref, LookupResult& status) {
+	auto it = bibRef.find(ref);
+	if (it == bibRef.end()) {
+		status = NO_VERSE;
+		return Ref();
+	}
+
+	it++;
+	if (it == bibRef.end()) {
+		status = OTHER;  // No next verse found
+		return Ref();
+	}
+
+	status = SUCCESS;
+	return it->first; // Return the next reference
+}
 
 // OPTIONAL: Return the reference before the given ref
 Ref Bible::prev(const Ref ref, LookupResult& status) {}
@@ -118,9 +146,11 @@ void Bible::buildMap() {
 
 	while (getline(file, str)) {
 		Ref ref(str);
+		bibRef.insert({ ref, byteOffset });
 		byteOffset = file.tellg();
-		bibRef.insert(<ref, byteOffset>);
 	}
 
 	file.close();
 }
+
+
